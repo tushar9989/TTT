@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
 const http = require('http');
+const constants = require('./constants.js');
 
 app.use(express.static(__dirname+'/client_react'));
 app.use('/node_modules', express.static(__dirname + '/node_modules/'));
@@ -9,39 +10,171 @@ app.use(bodyParser.json());
 
 app.get('/api/top/:_n', (req, res) => {
 	var n = parseInt(req.params._n);
-	getTopWordsFromURL('http://terriblytinytales.com/test.txt', n, function(err, words) {
-		res.json(words);
+	var url = req.query.url;
+
+	if(isNaN(n) || n < 1)
+	{
+		res.status(400).send({
+			message: "Invalid input."
+		});
+		return;
+	}
+	// http://digest.textfiles.com/TELECOMDIGEST/vol14.iss0051-0100.txt
+	getTopWordsFromURL(url, n, req.query.ignoreCommon, function(err, words) {
+		if(err)
+		{
+			console.log(err);
+			res.status(500).send({
+				message: err.message
+			});
+		}
+		else {
+			res.json(words);
+		}
 	});
 });
 
-function getTopWordsFromURL(url, n, callback)
+function getTopWordsFromURL(url, n, ignoreCommon, callback)
 {
 	getBodyFromUrl(url, (err, body) => {
 		if(err) {
 			callback(err);
+			return;
 		}
-		console.log("boom.\n\n");
-		console.log(body);
-		var re = /(\w+(['’-]?\w+)?)/g;
+
+		getWordFrequenciesFromText(body, ignoreCommon, (freqErr, frequencies) => {
+			if(freqErr)
+			{
+				callback(freqErr);
+				return;
+			}
+
+			getTop(frequencies, n, (topError, newFrequencies) => {
+				if(topError)
+				{
+					callback(topError);
+					return;
+				}
+
+				callback(null, {
+					data: newFrequencies
+				});
+			});
+		});
+	});
+}
+
+function getTop(inputFrequencies, n, callback) {
+	function getRandomInt(min, max) {
+		return Math.floor(Math.random() * (max - min + 1)) + min;
+	}
+
+	function partition(array) {
+		var left = [];
+		var right = [];
+		var end = array.length - 1;
+		var random = getRandomInt(0, end);
+		var pivot = array[random].count;
+		for(var i = 0; i <= end; i++)
+		{
+			if(i === random)
+				continue;
+
+			if(array[i].count > pivot)
+				left.push(array[i]);
+			else
+				right.push(array[i]);
+		}
+
+		return {
+			left: left,
+			pivot: array[random],
+			right: right
+		};
+	}
+
+	try {
+		console.time('getTop');
+		if(n >= inputFrequencies.length)
+		{
+			return inputFrequencies;
+		}
+
+		var frequencies = JSON.stringify(inputFrequencies);
+		frequencies = JSON.parse(frequencies);
+		var wordsRemaining = 0;
+		var top = [];
+
+		while(top.length < n) {
+			var partitioned = partition(frequencies);
+
+			if(partitioned.left.length <= (n - top.length))
+			{
+				for(var i = 0; i < partitioned.left.length; i++)
+				{
+					top.push(partitioned.left[i]);
+					if(top.length === n)
+					{
+						break;
+					}
+				}
+
+				if(top.length < n)
+				{
+					top.push(partitioned.pivot);
+				}
+				frequencies = partitioned.right;
+			}
+			else
+			{
+				frequencies = partitioned.left;
+			}
+		}
+
+		console.timeEnd('getTop');
+		callback(null, top);
+	} catch (e) {
+		callback(e);
+	}
+}
+
+function getWordFrequenciesFromText(text, ignoreCommon, callback)
+{
+	try {
 		console.time('test');
-		var words = body.match(re);
+
+		// Will work only for english words. Special characters will be ignored.
+		var extractWordsRegex = /(\w+(['’-]?\w+)?)/g;
+
+		var words = text.match(extractWordsRegex);
 		var frequency = {};
 		for(var i = 0; i < words.length; i++)
 		{
+			// Ignoring numbers
+			if(!isNaN(parseInt(words[i])))
+			{
+				continue;
+			}
 			var lowerCaseWord = words[i].toLowerCase();
+			if(constants.stopWords[lowerCaseWord] === true && ignoreCommon === 'true')
+			{
+				continue;
+			}
 			if(frequency[lowerCaseWord] === undefined)
 			{
-				frequency[lowerCaseWord] = 0;
+				frequency[lowerCaseWord] = {
+					count: 0,
+					word: lowerCaseWord
+				};
 			}
-			frequency[lowerCaseWord]++;
+			frequency[lowerCaseWord].count++;
 		}
 		console.timeEnd('test');
-		callback(null, {
-			words: words,
-			frequency: frequency,
-			n: n
-		});
-	});
+		callback(null, Object.values(frequency));
+
+	} catch (e) {
+		callback(e);
+	}
 }
 
 function getBodyFromUrl(url, callback) {
