@@ -3,3 +3,4 @@ package-lock.json
 yarn.lock
 client_react/dist/
 ttt.code-workspace
+.vscode

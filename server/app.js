@@ -43,7 +43,6 @@ function getTopWordsFromURL(url, n, ignoreCommon, callback)
 			callback(err);
 			return;
 		}
-		console.log("Characters: " + body.length);
 
 		getWordFrequenciesFromText(body, ignoreCommon, (freqErr, frequencies) => {
 			if(freqErr)
@@ -52,7 +51,7 @@ function getTopWordsFromURL(url, n, ignoreCommon, callback)
 				return;
 			}
 
-			getTop(frequencies, n, (topError, newFrequencies) => {
+			getTopInOrder(frequencies, n, (topError, newFrequencies) => {
 				if(topError)
 				{
 					callback(topError);
@@ -67,85 +66,61 @@ function getTopWordsFromURL(url, n, ignoreCommon, callback)
 	});
 }
 
-function getTop(inputFrequencies, n, callback) {
-	function getRandomInt(min, max) {
-		return Math.floor(Math.random() * (max - min + 1)) + min;
+function getTopInOrder(inputFrequencies, n, callback)
+{
+	console.time('getTopInOrder');
+	if(inputFrequencies.length <= n)
+	{
+		inputFrequencies.sort((a, b) => b.count - a.count);
+		callback(null, inputFrequencies);
 	}
+	else
+	{
+		try {
+			var buckets = {};
+			var max = inputFrequencies[0].count;
+			var i;
+			var top = [];
+			var done = false;
 
-	function partition(array) {
-		var left = [];
-		var right = [];
-		var end = array.length - 1;
-		var random = getRandomInt(0, end);
-		var pivot = array[random].count;
-		for(var i = 0; i <= end; i++)
-		{
-			if(i === random)
-				continue;
+			for (i = 0; i < inputFrequencies.length; i++) {
+				if (inputFrequencies[i].count > max)
+					max = inputFrequencies[i].count;
 
-			if(array[i].count > pivot)
-				left.push(array[i]);
-			else
-				right.push(array[i]);
-		}
+				if (buckets[inputFrequencies[i].count] === undefined)
+					buckets[inputFrequencies[i].count] = [];
 
-		return {
-			left: left,
-			pivot: array[random],
-			right: right
-		};
-	}
+				buckets[inputFrequencies[i].count].push(inputFrequencies[i]);
+			}
 
-	try {
-		console.time('getTop');
-		if(n >= inputFrequencies.length)
-		{
-			callback(null, inputFrequencies);
-			return;
-		}
+			for (i = max; i >= 0; i--) {
+				if (buckets[i] !== undefined) {
+					for (var j = 0; j < buckets[i].length; j++) {
+						top.push(buckets[i][j]);
 
-		var frequencies = JSON.stringify(inputFrequencies);
-		frequencies = JSON.parse(frequencies);
-		var wordsRemaining = 0;
-		var top = [];
-
-		while(top.length < n) {
-			var partitioned = partition(frequencies);
-
-			if(partitioned.left.length <= (n - top.length))
-			{
-				for(var i = 0; i < partitioned.left.length; i++)
-				{
-					top.push(partitioned.left[i]);
-					if(top.length === n)
-					{
-						break;
+						if (top.length === n) {
+							callback(null, top);
+							done = true;
+							break;
+						}
 					}
-				}
 
-				if(top.length < n)
-				{
-					top.push(partitioned.pivot);
+					if (done)
+						break;
 				}
-				frequencies = partitioned.right;
-			}
-			else
-			{
-				frequencies = partitioned.left;
 			}
 		}
-
-		console.timeEnd('getTop');
-		callback(null, top);
-	} catch (e) {
-		callback(e);
+		catch (e) {
+			callback(e);
+		}
 	}
+	console.timeEnd('getTopInOrder');
 }
 
 function getWordFrequenciesFromText(text, ignoreCommon, callback)
 {
 	try {
-		console.time('test');
+		console.time('getWordFrequenciesFromText');
 
 		// Will work only for english words. Special characters will be ignored.
 		var extractWordsRegex = /(\w+(['’-]?\w+)?)/g;
@@ -173,7 +148,7 @@ function getWordFrequenciesFromText(text, ignoreCommon, callback)
 			}
 			frequency[lowerCaseWord].count++;
 		}
-		console.timeEnd('test');
+		console.timeEnd('getWordFrequenciesFromText');
 		callback(null, Object.values(frequency));
 
 	} catch (e) {
