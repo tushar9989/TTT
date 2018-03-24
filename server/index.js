@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const dotenv = require('dotenv');
-dotenv.config({ path: __dirname + '/.env' });
+dotenv.config({ path: __dirname + '/../.env' });
 
 const topController = require('./controllers/top.js');
 
