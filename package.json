@@ -13,7 +13,8 @@
     "body-parser": "*",
     "express": "*",
     "react": "^16.2.0",
-    "react-dom": "^16.2.0"
+    "react-dom": "^16.2.0",
+    "redis": "^2.8.0"
   },
   "author": "Tushar Dudani",
   "license": "ISC",

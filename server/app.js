@@ -3,10 +3,12 @@ const app = express();
 const bodyParser = require('body-parser');
 const http = require('http');
 const constants = require('./constants.js');
+const redis = require('redis');
 
 app.use(express.static(__dirname+'/client_react'));
 app.use('/node_modules', express.static(__dirname + '/node_modules/'));
 app.use(bodyParser.json());
+const client = redis.createClient();
 
 app.get('/api/top/:_n', (req, res) => {
 	var n = parseInt(req.params._n);
@@ -41,6 +43,7 @@ function getTopWordsFromURL(url, n, ignoreCommon, callback)
 			callback(err);
 			return;
 		}
+		console.log("Characters: " + body.length);
 
 		getWordFrequenciesFromText(body, ignoreCommon, (freqErr, frequencies) => {
 			if(freqErr)
@@ -97,7 +100,8 @@ function getTop(inputFrequencies, n, callback) {
 		console.time('getTop');
 		if(n >= inputFrequencies.length)
 		{
-			return inputFrequencies;
+			callback(null, inputFrequencies);
+			return;
 		}
 
 		var frequencies = JSON.stringify(inputFrequencies);
@@ -178,17 +182,42 @@ function getWordFrequenciesFromText(text, ignoreCommon, callback)
 }
 
 function getBodyFromUrl(url, callback) {
-	var req = http.get(url, function(res) {
+	var key = 'ttt_' + url;
+	client.exists(key, (err, reply) => {
+		if(err)
+		{
+			callback(err);
+			return;
+		}
+
+		if (reply === 1) {
+			client.get(key, (err, reply) => {
+				if(err)
+				{
+					callback(err);
+				}
+				else
+				{
+					callback(null, reply);
+				}
+			});
+		}
+		else {
+			var req = http.get(url, function (res) {
 	  var bodyChunks = [];
 	  res.on('data', (chunk) => {
 	    bodyChunks.push(chunk);
-	  }).on('end', function() {
-			callback(null, Buffer.concat(bodyChunks).toString());
-	  })
+				}).on('end', function () {
+					var body = Buffer.concat(bodyChunks).toString();
+					client.setex(key, 3600, body);
+					callback(null, body);
+				});
 	});
 
-	req.on('error', function(e) {
+			req.on('error', function (e) {
 		callback(e);
+	});
+}
 	});
 }
 
