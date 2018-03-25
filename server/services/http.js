@@ -25,20 +25,26 @@ function getContentsFromUrl(url, callback, key) {
     if(url.indexOf('https') === 0) 
         client = https;
 
-    var req = client.get(url, function (res) {
-        var bodyChunks = [];
-        res.on('data', (chunk) => {
-            bodyChunks.push(chunk);
-        }).on('end', function () {
-            var body = Buffer.concat(bodyChunks).toString();
-            cache.set(key, body, 3600);
-            callback(null, body);
+    try
+    {
+        var req = client.get(url, function (res) {
+            var bodyChunks = [];
+            res.on('data', (chunk) => {
+                bodyChunks.push(chunk);
+            }).on('end', function () {
+                var body = Buffer.concat(bodyChunks).toString();
+                cache.set(key, body, 3600);
+                callback(null, body);
+            });
         });
-    });
 
-    req.on('error', function (e) {
+        req.on('error', function (e) {
+            callback(e);
+        });
+    }
+    catch(e) {
         callback(e);
-    });
+    }
 }
 
 module.exports = wrapper;

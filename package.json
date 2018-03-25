@@ -8,18 +8,26 @@
     "start": "node server/index.js"
   },
   "dependencies": {
+    "@types/react": "^16.0.40",
+    "@types/react-bootstrap": "^0.32.6",
+    "@types/react-dom": "^16.0.4",
+    "@types/react-router-dom": "^4.2.5",
     "body-parser": "*",
     "dotenv": "^5.0.1",
     "express": "*",
     "react": "^16.2.0",
+    "react-bootstrap": "^0.32.1",
     "react-dom": "^16.2.0",
+    "react-router-dom": "^4.2.2",
     "redis": "^2.8.0"
   },
   "author": "Tushar Dudani",
   "license": "ISC",
   "devDependencies": {
+    "css-loader": "^0.28.11",
     "nodemon": "^1.17.2",
     "source-map-loader": "^0.2.3",
+    "style-loader": "^0.20.3",
     "ts-loader": "^4.0.1",
     "typescript": "^2.7.2"
   }
