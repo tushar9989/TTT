@@ -1,7 +1,8 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { Redirect, Route, Switch, BrowserRouter } from "react-router-dom";
-import { Top } from "./components/Top";
+import { TopOptions } from "./components/TopOptions";
+import { TopTable } from "./components/TopTable";
 
 export class Index extends React.Component<{}, {}> {
     render() {
@@ -13,7 +14,8 @@ export class Index extends React.Component<{}, {}> {
                             <Redirect to="/top"/>
                         )
                     }} />
-                    <Route path="/top" component={Top} />
+                    <Route exact path="/top" component={TopOptions} />
+                    <Route path="/top/:count" component={TopTable} />
                 </Switch>
             </BrowserRouter>
         );

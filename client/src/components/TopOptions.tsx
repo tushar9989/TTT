@@ -14,7 +14,7 @@ export interface TopState {
     ignoreCommon: boolean
 }
 
-export class Top extends React.Component<TopProps, TopState> {
+export class TopOptions extends React.Component<TopProps, TopState> {
 
     constructor(props: TopProps) {
         super(props);
