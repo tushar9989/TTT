@@ -51,7 +51,7 @@ export class TopTable extends React.Component<TopTableProps, TopTableState> {
             data: [],
             loading: true,
             pageNo: 1,
-            pageSize: 20
+            pageSize: 10
         };
 
         this.handlePageClick = this.handlePageClick.bind(this);
@@ -133,7 +133,7 @@ export class TopTable extends React.Component<TopTableProps, TopTableState> {
                     </Col>
                 </Row>
                 <Row>
-                    <Col xsOffset={1} xs={10}>
+                    <Col xs={12}>
                         {pagination}
                     </Col>
                 </Row>
@@ -168,9 +168,9 @@ export class TopTable extends React.Component<TopTableProps, TopTableState> {
         } 
         let items = [];
         let lastIndex = Math.floor(max / pageSize);
-        if(lastIndex < 1)
+        if(lastIndex <= 1)
         {
-            lastIndex = 1;
+            return null;
         }
 
         if(pageNo !== 1)
@@ -235,7 +235,7 @@ export class TopTable extends React.Component<TopTableProps, TopTableState> {
 
         return (
             <div>
-                <Pagination bsSize="small">{items}</Pagination>
+                <Pagination className="pagination-container" bsSize="small">{items}</Pagination>
             </div>
         );
     }
@@ -274,7 +274,7 @@ export class TopTable extends React.Component<TopTableProps, TopTableState> {
 
         return (
             <div>
-                <Table bordered condensed hover>
+                <Table hover>
                     <thead>
                         <tr>
                             <th>#</th>
