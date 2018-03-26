@@ -1,7 +1,9 @@
 import * as React from 'react';
-import { Table, ProgressBar, Pagination } from 'react-bootstrap';
+import { Table, ProgressBar, Pagination, Grid, Row, Col } from 'react-bootstrap';
 import { RouteComponentProps } from 'react-router-dom';
 import * as $ from 'jquery';
+import { TopOptions, TopState } from './TopOptions';
+import '../styles/top-table.css';
 
 // Define what your match should look like
 interface TopTableMatch {
@@ -53,9 +55,27 @@ export class TopTable extends React.Component<TopTableProps, TopTableState> {
         };
 
         this.handlePageClick = this.handlePageClick.bind(this);
+        this.goCallback = this.goCallback.bind(this);
+    }
+
+    goCallback(state: TopState) {
+        this.setState({
+            url: state.url,
+            count: state.count,
+            ignoreCommon: state.ignoreCommon
+        }, () => this.loadTableData());
+        this.props.history.push(state.count + '?url=' + encodeURIComponent(state.url) + '&ignoreCommon=' + state.ignoreCommon);
     }
 
     componentDidMount() {
+        this.loadTableData();
+    }
+
+    loadTableData() {
+        this.setState({
+            loading: true,
+            error: undefined
+        })
         var endpoint = '/api/top/' + this.state.count;
         $.ajax({
             url: endpoint,
@@ -81,23 +101,43 @@ export class TopTable extends React.Component<TopTableProps, TopTableState> {
 
     render() {
 
+        var table, pagination;
         if(this.state.loading) {
-            return <ProgressBar active now={100} />;
+            table = <Grid className="loading-container">
+                <Row>
+                    <Col xsOffset={2} xs={8}>
+                        <ProgressBar active now={100} />
+                    </Col>
+                </Row>
+            </Grid>;
+
+            pagination = null;
         }
+        else
+        {
+            table = this.getTable(this.state);
 
-        if(this.state.error) {
-            return <div>{this.state.error}</div>
+            pagination = this.getPagination(this.state.pageNo, this.state.pageSize, this.state.data.length);
         }
-
-        var table = this.getTable(this.state);
-
-        var pagination = this.getPagination(this.state.pageNo, this.state.pageSize, this.state.data.length);
 
         return (
-            <div>
-                {table}
-                {pagination}
-            </div>
+            <Grid className="table-container">
+                <Row>
+                    <Col xs = {12}>
+                        <TopOptions count={this.state.count} url={this.state.url} ignoreCommon={this.state.ignoreCommon} goCallback={this.goCallback} compact={true} />
+                    </Col>
+                </Row>
+                <Row>
+                    <Col xs={12}>
+                        {table}
+                    </Col>
+                </Row>
+                <Row>
+                    <Col xsOffset={1} xs={10}>
+                        {pagination}
+                    </Col>
+                </Row>
+            </Grid>
         );
     }
 
@@ -123,8 +163,15 @@ export class TopTable extends React.Component<TopTableProps, TopTableState> {
     }
 
     getPagination(pageNo: number, pageSize: number, max: number) {
+        if(this.state.error || this.state.data.length === 0) {
+            return null;
+        } 
         let items = [];
         let lastIndex = Math.floor(max / pageSize);
+        if(lastIndex < 1)
+        {
+            lastIndex = 1;
+        }
 
         if(pageNo !== 1)
         {
@@ -206,6 +253,25 @@ export class TopTable extends React.Component<TopTableProps, TopTableState> {
             data = [];
         }
 
+        var tbody;
+        if (this.state.error) {
+            tbody = <tr key="error"><td key="nd-elem" colSpan={3} className="error-row">{this.state.error}</td></tr>;
+        }
+        else if(data.length > 0)
+        {
+            tbody = data.map((row, i) =>
+                <tr key={i}>
+                    <td key="1">{((state.pageNo - 1) * state.pageSize) + i + 1}</td>
+                    <td key="2">{row.word}</td>
+                    <td key="3">{row.count}</td>
+                </tr>
+            );
+        }
+        else
+        {
+            tbody = <tr key="error"><td key="nd-elem" colSpan={3} className="no-data-row">No Data Found</td></tr>;
+        }
+
         return (
             <div>
                 <Table bordered condensed hover>
@@ -217,13 +283,7 @@ export class TopTable extends React.Component<TopTableProps, TopTableState> {
                         </tr>
                     </thead>
                     <tbody>
-                        {data.map((row, i) =>
-                            <tr key={i}>
-                                <td key="1">{((state.pageNo - 1) * state.pageSize) + i + 1}</td>
-                                <td key="2">{row.word}</td>
-                                <td key="3">{row.count}</td>
-                            </tr>
-                        )}
+                        {tbody}
                     </tbody>
                 </Table>
             </div>

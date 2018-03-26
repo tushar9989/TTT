@@ -1,0 +1,16 @@
+.table-container {
+    margin-top: 30px;
+}
+
+.loading-container {
+    margin-top: 50px;
+}
+
+.error-row, .no-data-row {
+    text-align: center;
+    padding: 10px;
+}
+
+.error-row {
+    color: red;
+}
