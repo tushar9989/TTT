@@ -18,6 +18,7 @@
 
 ```sh
 npm install
+sudo npm install -g webpack-cli
 ```
 
 - Copy default env file and edit as needed
